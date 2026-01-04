@@ -1,385 +1,70 @@
-# ⚡ MYUPSTAKE Casino - Telegram Mini App
-
-Красивое казино-приложение с игрой Crash в элегантном черно-белом дизайне для Telegram Mini App.
-
-## 🎮 Что это?
-
-Это симулятор crash gambling игры, где:
-- График множителя растет от 1.00x
-- Игроки делают ставки и могут забрать выигрыш в любой момент
-- График "крашится" в случайный момент
-- Кто успел забрать - выигрывает (ставка × множитель)
-- Кто не успел - теряет ставку
-- Использует честный алгоритм с 3% house edge (как в настоящих казино)
-
-## 🌟 Функции
-
-### Основная игра
-- **Live график** с плавной анимацией множителя
-- **Betting система** с удобным интерфейсом ставок
-- **Система баланса** (стартовый баланс: 1000 ⭐)
-- **Live таблица ставок** - видно ставки других игроков в реальном времени
-- **История игр** - последние 25 раундов
-- **Streak система** - отображение серий высоких/низких крашей
-
-### Telegram интеграция
-- Telegram WebApp SDK интегрирован
-- Получение данных пользователя из Telegram
-- Оптимизирован для мобильных устройств
-- Адаптивный дизайн
-
-### Дизайн
-- Элегантный черно-белый стиль
-- Неоновые эффекты и анимации
-- Градации серого для контраста
-- Отзывчивый UI для всех экранов
-
-## 🛠 Технологии
-
-### Backend
-- **FastAPI** - современный Python веб-фреймворк
-- **WebSocket** - real-time коммуникация
-- **MongoDB** - база данных для пользователей
-- **Motor** - асинхронный драйвер MongoDB
-- **Provably Fair Algorithm** - честный алгоритм генерации
-
-### Frontend
-- **React 19** - современный UI фреймворк
-- **Tailwind CSS** - utility-first стили
-- **WebSocket API** - real-time обновления
-- **Canvas API** - отрисовка графика
-- **Telegram WebApp SDK** - интеграция с Telegram
-
-## 📦 Структура проекта
-
-```
-/app/
-├── backend/
-│   ├── server.py           # Основной API сервер
-│   ├── game_logic.py       # Логика игры Crash
-│   ├── requirements.txt    # Python зависимости
-│   └── .env               # Переменные окружения
-│
-├── frontend/
-│   ├── src/
-│   │   ├── App.js         # Главный компонент
-│   │   ├── App.css        # Стили приложения
-│   │   └── index.js       # Entry point
-│   ├── public/
-│   │   └── index.html     # HTML с Telegram SDK
-│   ├── package.json       # Node зависимости
-│   └── .env              # Frontend переменные
-│
-└── README.md
-```
-
-## 🚀 Установка и запуск
-
-### Требования
-- Python 3.11+
-- Node.js 18+
-- MongoDB
-- yarn (не npm!)
-
-### Backend
-
-```bash
-cd /app/backend
-
-# Установить зависимости
-pip install -r requirements.txt
-
-# Настроить .env файл
-# MONGO_URL="mongodb://localhost:27017"
-# DB_NAME="crash_casino"
-# CORS_ORIGINS="*"
-
-# Запустить сервер
-uvicorn server:app --host 0.0.0.0 --port 8001 --reload
-```
-
-### Frontend
-
-```bash
-cd /app/frontend
-
-# Установить зависимости (только yarn!)
-yarn install
-
-# Настроить .env файл
-# REACT_APP_BACKEND_URL=http://localhost:8001
-
-# Запустить dev сервер
-yarn start
-```
-
-## 🎯 API Endpoints
-
-### REST API
-
-#### Создать/получить пользователя
-```
-POST /api/user/create?telegram_id={id}&username={name}
-Response: User object
-```
-
-#### Получить пользователя
-```
-GET /api/user/{user_id}
-Response: User object
-```
-
-#### Сделать ставку
-```
-POST /api/game/bet
-Body: {
-  "user_id": "uuid",
-  "username": "string",
-  "amount": float
-}
-Response: {
-  "success": true,
-  "bet": {...},
-  "new_balance": float
-}
-```
-
-#### Забрать выигрыш
-```
-POST /api/game/cashout
-Body: {
-  "user_id": "uuid"
-}
-Response: {
-  "success": true,
-  "bet": {...},
-  "new_balance": float
-}
-```
-
-#### История игр
-```
-GET /api/game/history
-Response: {
-  "recent_crashes": [float],
-  "streak": {"type": "high|low", "count": int}
-}
-```
-
-### WebSocket
-
-```
-ws://your-domain/api/ws
-```
-
-**Получаемые сообщения:**
-
-1. **connected** - подключение установлено
-```json
-{
-  "type": "connected",
-  "game_state": "waiting|playing|crashed",
-  "multiplier": float,
-  "history": {...}
-}
-```
-
-2. **waiting** - ожидание начала игры
-```json
-{
-  "type": "waiting",
-  "countdown": int,
-  "message": string
-}
-```
-
-3. **game_started** - игра началась
-```json
-{
-  "type": "game_started",
-  "message": string
-}
-```
-
-4. **multiplier_update** - обновление множителя (20 раз в секунду)
-```json
-{
-  "type": "multiplier_update",
-  "multiplier": float,
-  "elapsed_time": float
-}
-```
-
-5. **game_crashed** - игра закончилась
-```json
-{
-  "type": "game_crashed",
-  "crash_point": float,
-  "bets": [...],
-  "history": {...}
-}
-```
-
-6. **bet_placed** - новая ставка
-```json
-{
-  "type": "bet_placed",
-  "bet": {...}
-}
-```
-
-7. **cash_out** - игрок забрал выигрыш
-```json
-{
-  "type": "cash_out",
-  "bet": {...}
-}
-```
-
-## 🎨 Игровой цикл
-
-1. **Waiting (10 секунд)** - принимаются ставки
-2. **Playing** - график растет, можно забрать выигрыш
-3. **Crashed** - игра закончилась, показ результатов (5 секунд)
-4. Повтор с шага 1
-
-## 💾 База данных
-
-### Коллекция `users`
-```javascript
-{
-  "id": "uuid",
-  "telegram_id": "string",
-  "username": "string",
-  "balance": float,
-  "total_wagered": float,
-  "total_won": float,
-  "games_played": int,
-  "created_at": "ISO datetime"
-}
-```
-
-## 🎲 Алгоритм генерации (Provably Fair)
-
-Игра использует честный алгоритм генерации crash point:
-
-1. Генерируется SHA-256 хеш из случайного seed
-2. Применяется house edge (3%)
-3. Рассчитывается crash point по формуле
-4. Результат всегда >= 1.00x
-
-Формула:
-```python
-crash_point = 99 / (100 - (hash_float * 100))
-```
-
-## 🌐 Деплой на бесплатный хостинг
-
-### Render.com (рекомендуется)
-
-1. **Backend:**
-   - New > Web Service
-   - Connect Git repo
-   - Build command: `pip install -r requirements.txt`
-   - Start command: `uvicorn server:app --host 0.0.0.0 --port $PORT`
-   - Environment: добавить MONGO_URL
-
-2. **Frontend:**
-   - New > Static Site
-   - Build command: `yarn install && yarn build`
-   - Publish directory: `build`
-   - Environment: добавить REACT_APP_BACKEND_URL
-
-3. **MongoDB:**
-   - Используйте MongoDB Atlas (free tier)
-   - https://www.mongodb.com/cloud/atlas
-
-### Vercel (frontend)
-
-```bash
-cd frontend
-vercel --prod
-```
-
-### Railway.app (full-stack)
-
-```bash
-railway login
-railway init
-railway up
-```
-
-## 🔧 Конфигурация для Telegram
-
-1. Создайте бота через @BotFather
-2. Получите токен бота
-3. Настройте Mini App:
-   ```
-   /newapp
-   Выберите вашего бота
-   Укажите URL приложения
-   Название: MYUPSTAKE Casino
-   Описание: Exciting crash gambling game
-   ```
-4. Добавьте кнопку запуска в описание бота
-
-## 💰 Система звезд (для будущей интеграции)
-
-Текущая система:
-- 1 звезда ⭐ = 1.3₽
-- Стартовый баланс: 1000 звезд
-- Демо-режим (реальные платежи не подключены)
-
-Для подключения Telegram Stars:
-1. Используйте Telegram Payments API
-2. Интегрируйте Stars через Bot API
-3. Обновите endpoints для пополнения баланса
-
-## 🎮 Как играть
-
-1. Откройте приложение в Telegram
-2. Вы получите стартовый баланс 1000⭐
-3. Введите сумму ставки
-4. Нажмите "Place Bet" во время countdown
-5. Когда начнется игра:
-   - График множителя растет
-   - Нажмите "Cash Out" в любой момент
-   - Чем дольше ждете - тем больше выигрыш
-   - Но если график крашится - теряете ставку!
-6. Выигрыш = ставка × множитель
-
-## 🐛 Известные ограничения
-
-- Демо-режим (реальные платежи не подключены)
-- История хранится только в памяти (перезапуск = сброс)
-- Один игровой сервер (для production нужен load balancer)
-
-## 📝 Лицензия
-
-Это учебный проект для демонстрации возможностей.
-Не используйте для реального gambling без соответствующих лицензий!
-
-## 🤝 Поддержка
-
-Для вопросов и предложений:
-- GitHub Issues
-- Telegram: @yourusername
-
-## 🎉 Фичи для будущего развития
-
-- [ ] Интеграция Telegram Stars для реальных платежей
-- [ ] Система рейтингов и лидерборд
-- [ ] Бонусы и промокоды
-- [ ] Auto cash-out (установить множитель заранее)
-- [ ] История ставок пользователя
-- [ ] Статистика выигрышей/проигрышей
-- [ ] Чат между игроками
-- [ ] Звуковые эффекты
-- [ ] Дополнительные игры (Dice, Roulette, Slots)
-- [ ] Реферальная система
-
----
-
-**Сделано с ⚡ для Telegram Mini Apps**
-
-*Играйте ответственно! Это демо-версия для обучения.*
+# Getting Started with Create React App
+
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+## Available Scripts
+
+In the project directory, you can run:
+
+### `npm start`
+
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
+
+### `npm test`
+
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+### `npm run build`
+
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
+
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+
+### `npm run eject`
+
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+
+## Learn More
+
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+
+To learn React, check out the [React documentation](https://reactjs.org/).
+
+### Code Splitting
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
